@@ -1,1 +1,12 @@
-{"name":"study-connections-obsidian","private":true,"version":"0.2.0","description":"Local automatic concept discovery and backlinking for Obsidian","scripts":{"build":"node build.mjs","test":"node --test tests/*.test.cjs","check":"npm run test && npm run build"},"license":"UNLICENSED"}
+{
+  "name": "study-connections-obsidian",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Local automatic concept discovery and backlinking for Obsidian",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.cjs",
+    "check": "npm run build && npm run test"
+  },
+  "license": "UNLICENSED"
+}
