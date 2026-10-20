@@ -1,0 +1,63 @@
+name: Test, build and publish Study Connections
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unpack original source code once
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f src/main.js ]; then
+            cat bootstrap/source.part01 bootstrap/source.part02 bootstrap/source.part03 bootstrap/source.part04 | base64 --decode > source.tar.gz
+            echo "583e89eec67517b35da5268d44869fda75bb980199d932b41168bfb53e021f8b  source.tar.gz" | sha256sum --check
+            tar -xzf source.tar.gz
+            rm source.tar.gz
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src tests build.mjs manifest.json package.json versions.json styles.css
+            git commit -m "Add original tested Study Connections v0.2.0 source"
+            git push origin HEAD:main
+          fi
+
+      - name: Run tests and compile plugin
+        run: npm run check
+
+      - name: Validate BRAT release files
+        shell: bash
+        run: |
+          test -s main.js
+          test -s manifest.json
+          test -s styles.css
+          node --check main.js
+          node -e "const m=require('./manifest.json');if(m.id!=='study-connections'||m.version!==require('./package.json').version)process.exit(1)"
+
+      - name: Publish versioned release for BRAT
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./manifest.json').version")"
+          TAG="${VERSION}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" main.js manifest.json styles.css --clobber
+          else
+            gh release create "${TAG}" main.js manifest.json styles.css --target "$(git rev-parse HEAD)" --title "Study Connections ${VERSION}" --notes "Experimental automatic concept discovery. See README for instructions and limitations."
+          fi
