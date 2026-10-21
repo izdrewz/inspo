@@ -80,19 +80,18 @@ function indexFiles(files){
 }
 function safeMd(s){return String(s).replace(/([\\[\]*_`])/g,'\\$1').replace(/\r?\n/g,' ');}
 function conceptPage(c){
- const lines=['---','study_connections_generated: true',`study_connections_id: ${c.id}`,'---','',`# ${c.title}`,'',
-  '## My explanation','', '',
-  '<!-- study-connections:generated:start -->','## Linked passages (automatically updated)','',
-  `**Found ${c.hits.length} matching passage${c.hits.length===1?'':'s'} in ${new Set(c.hits.map(h=>h.path)).size} note(s).**`,
-  '', '*Related wording is suggested, not a verified evidence relationship.*',''];
+ const lines=[`<!-- study-connections:owned id=${c.id} -->`,`# ${c.title}`,'',
+  '## Your notes','', '',
+  '<!-- study-connections:generated:start -->','## Passages','',
+  `_${c.hits.length} passage${c.hits.length===1?'':'s'} · ${new Set(c.hits.map(h=>h.path)).size} note${new Set(c.hits.map(h=>h.path)).size===1?'':'s'}_`,''];
  const shown=c.hits.slice(0,80);
  for(const h of shown){
    const url=`obsidian://study-connections?file=${encodeURIComponent(h.path)}&offset=${h.start}`;
-   lines.push(`- [${safeMd(h.path)} — ${safeMd(h.text)}](${url}) · ${h.kind==='alias'?'Related wording (check)':'Term match'}`);
+   lines.push(`- [${safeMd(h.path)} — ${safeMd(h.text)}](${url})${h.kind==='alias'?' · related wording':''}`);
    if(h.line)lines.push(`  > ${h.line.replace(/^>\s*/,'').replace(/\r/g,'').replace(/\n/g,' ').replace(/<!--|-->/g,'').slice(0,240)}`);
  }
  if(c.hits.length>shown.length)lines.push(`- … and ${c.hits.length-shown.length} more matches.`);
- lines.push('','## Connection map (automatically updated)','','```mermaid','flowchart TD',`  TOP["${c.title.replace(/["<>\\]/g,'').slice(0,55)}"]`);
+ lines.push('','## Map','','```mermaid','flowchart TD',`  TOP["${c.title.replace(/["<>\\]/g,'').slice(0,55)}"]`);
  const paths=[...new Set(c.hits.map(h=>h.path))].slice(0,10);
  paths.forEach((p,i)=>{lines.push(`  N${i}["${p.replace(/["<>\\]/g,'').slice(0,45)}"] --> TOP`)});
  lines.push('```','','<!-- study-connections:generated:end -->','');return lines.join('\n');
@@ -103,4 +102,14 @@ function preserveUserEdits(existing,next){
   if(i<0||j<i||ni<0||nj<ni)return null;
   return existing.slice(0,i)+next.slice(ni,nj+end.length)+existing.slice(j+end.length);
 }
-module.exports={CURATED,PAL,plainId,textForScan,collectMatches,indexFiles,conceptPage,preserveUserEdits};
+function isOwnedConcept(text){
+  return /study_connections_generated:\s*true/.test(text)||/<!--\s*study-connections:owned\s+id=[^>]+-->/.test(text);
+}
+function removeGeneratedFrontmatter(text){
+  const match=text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  if(!match)return text;
+  const fields=match[1].split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  if(fields.length&&fields.every(line=>/^study_connections_(generated|id):/.test(line)))return text.slice(match[0].length);
+  return text;
+}
+module.exports={CURATED,PAL,plainId,textForScan,collectMatches,indexFiles,conceptPage,preserveUserEdits,isOwnedConcept,removeGeneratedFrontmatter};

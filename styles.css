@@ -2,3 +2,7 @@
 .sc-match{border-bottom:2px solid var(--sc-accent);border-radius:2px;cursor:pointer; background-color:color-mix(in srgb,var(--sc-accent) 17%,transparent); text-decoration:none!important;text-underline-offset:.17em;}
 .sc-match:hover{background-color:color-mix(in srgb,var(--sc-accent) 34%,transparent);}
 .sc-colour-gold{--sc-accent:#d7a52e}.sc-colour-sky{--sc-accent:#65a7ef}.sc-colour-mint{--sc-accent:#55b892}.sc-colour-lavender{--sc-accent:#a384e7}.sc-colour-peach{--sc-accent:#ef9872}.sc-colour-rose{--sc-accent:#e87aaa}
+
+/* Keep the ownership and refresh markers out of the editing surface. */
+.cm-line:has(.cm-comment){display:none!important;}
+.sc-setting-status{color:var(--text-muted);font-size:var(--font-ui-small);}

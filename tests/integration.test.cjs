@@ -32,5 +32,5 @@ test('full scan creates concept folder and page, without modifying source notes'
  assert.equal(documents.get('practise.md'),'the key is listening to them.');
  documents.set('practise.md','completely different text');await plugin.scan(false);
  assert.equal(documents.get('practise.md'),'completely different text');
- assert.match(documents.get('Study Connections/Concepts/listening.md'),/Found 0 matching passages/);
+ assert.match(documents.get('Study Connections/Concepts/listening.md'),/_0 passages · 0 notes_/);
 });

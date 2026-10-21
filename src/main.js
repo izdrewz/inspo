@@ -47,8 +47,9 @@ class StudyConnections extends Plugin {
     if(!f){await this.app.vault.create(path,next);return;}
     if(!(f instanceof TFile))return;
     const old=await this.app.vault.cachedRead(f);
-    if(!/study_connections_generated:\s*true/.test(old)){console.warn('Study Connections: refusing to overwrite unowned page',path);return;}
-    const update=Core.preserveUserEdits(old,next);
+    if(!Core.isOwnedConcept(old)){console.warn('Study Connections: refusing to overwrite unowned page',path);return;}
+    const cleanOld=Core.removeGeneratedFrontmatter(old);
+    const update=Core.preserveUserEdits(cleanOld,next);
     if(update&&update!==old)await this.app.vault.modify(f,update);
   }
   async markAbsentConcepts(active){
@@ -58,10 +59,10 @@ class StudyConnections extends Plugin {
     for(const file of folder.children){
       if(!(file instanceof TFile)||!file.path.endsWith('.md'))continue;
       const existing=await this.app.vault.cachedRead(file);
-      const id=(existing.match(/^study_connections_id:\s*([^\r\n]+)/m)||[])[1];
-      if(!id||activeIds.has(id)||!/study_connections_generated:\s*true/.test(existing))continue;
+      const id=(existing.match(/^study_connections_id:\s*([^\r\n]+)/m)||[])[1]||((existing.match(/<!--\s*study-connections:owned\s+id=([^\s>]+)\s*-->/)||[])[1]);
+      if(!id||activeIds.has(id)||!Core.isOwnedConcept(existing))continue;
       const placeholder=Core.conceptPage({id,title:id,hits:[]});
-      const updated=Core.preserveUserEdits(existing,placeholder);
+      const updated=Core.preserveUserEdits(Core.removeGeneratedFrontmatter(existing),placeholder);
       if(updated&&updated!==existing)await this.app.vault.modify(file,updated);
     }
   }
@@ -140,9 +141,8 @@ class SCSettings extends PluginSettingTab{
   constructor(app,plugin){super(app,plugin);this.plugin=plugin;}
   display(){const {containerEl}=this;containerEl.empty();
     containerEl.createEl('h2',{text:'Study Connections'});
-    containerEl.createEl('p',{text:'Scans notes locally, marks matched wording, and writes concept pages to Study Connections/Concepts. It never rewrites your source notes. Related wording is a suggestion, not a verified evidence link.'});
-    new Setting(containerEl).setName('Scan now').setDesc('Rebuild the concept library and update maps.').addButton(b=>b.setButtonText('Scan vault').onClick(()=>void this.plugin.scan(true)));
-    containerEl.createEl('p',{text:`Live Preview marks: ${this.plugin.cmActive?'enabled':'unavailable (Reading view still supported)'}`});
+    new Setting(containerEl).setName('Scan vault').setDesc('Update concept pages and passage links.').addButton(b=>b.setButtonText('Scan now').onClick(()=>void this.plugin.scan(true)));
+    containerEl.createEl('p',{cls:'sc-setting-status',text:`Live Preview: ${this.plugin.cmActive?'on':'unavailable'}`});
   }
 }
 module.exports=StudyConnections;
